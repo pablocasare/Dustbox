@@ -29,7 +29,8 @@ else()
 endif()
 
 juce_add_plugin(DustBox
-  COMPANY_NAME             "Your Name"
+  COMPANY_NAME             "DustBox"
+  BUNDLE_ID                com.dustbox.synth
   PLUGIN_MANUFACTURER_CODE Ynme          # 4 chars, at least one uppercase — change before sharing
   PLUGIN_CODE              Dsb2          # 4 chars, at least one uppercase
   FORMATS                  ${DUSTBOX_FORMATS}
@@ -43,7 +44,34 @@ juce_add_plugin(DustBox
   VST3_CATEGORIES          "Instrument" "Synth"
   AU_MAIN_TYPE             "kAudioUnitType_MusicDevice")
 
-target_sources(DustBox PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp)
+# Find the code wherever it was put: in a Source folder, at the top level, or
+# one folder down. The build folder is skipped, because the JUCE download inside
+# it has example files with the same names.
+set(DUSTBOX_FILES PluginProcessor.cpp PluginEditor.cpp PluginProcessor.h PluginEditor.h
+                  Params.h Presets.h Matcher.h SynthEngine.h)
+file(GLOB_RECURSE _found RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*PluginProcessor.cpp")
+list(FILTER _found EXCLUDE REGEX "(^|/)(build[^/]*|_deps|JUCE[^/]*)/")
+list(FILTER _found INCLUDE REGEX "(^|/)PluginProcessor\\.cpp$")
+if(NOT _found)
+  message(FATAL_ERROR "\nDust Box: can't find PluginProcessor.cpp.\n"
+                      "Upload all of these files to the same place: ${DUSTBOX_FILES}\n")
+endif()
+list(GET _found 0 _first)
+get_filename_component(DUSTBOX_SRC "${CMAKE_CURRENT_SOURCE_DIR}/${_first}" DIRECTORY)
+set(_missing "")
+foreach(f IN LISTS DUSTBOX_FILES)
+  if(NOT EXISTS "${DUSTBOX_SRC}/${f}")
+    list(APPEND _missing ${f})
+  endif()
+endforeach()
+if(_missing)
+  message(FATAL_ERROR "\nDust Box: found the code in ${DUSTBOX_SRC}\n"
+                      "but these files are missing from that folder: ${_missing}\n"
+                      "Upload them next to PluginProcessor.cpp and run the build again.\n")
+endif()
+message(STATUS "Dust Box: building from ${DUSTBOX_SRC}")
+target_sources(DustBox PRIVATE "${DUSTBOX_SRC}/PluginProcessor.cpp" "${DUSTBOX_SRC}/PluginEditor.cpp")
+target_include_directories(DustBox PRIVATE "${DUSTBOX_SRC}")
 
 target_compile_definitions(DustBox PUBLIC
   JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0
