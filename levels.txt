@@ -1,0 +1,69 @@
+Rolling Three	0.41990
+Bounce Bass	0.53234
+Donk Roller	1.15292
+Heavy Line	0.33462
+Warehouse Growl	0.41054
+Rubber Bass	0.36976
+Funk Bass	0.41228
+Jack Bass	0.37317
+Basement Sub	0.23549
+Round Sub	0.21523
+Punch Sub	0.32613
+Warm Sub	0.23596
+Sub Swell	0.20276
+Acid Worm	0.30366
+Squelch Line	0.26772
+Rubber Acid	0.28201
+Night Acid	0.30175
+Screamer	0.30305
+Deep Minor Nine	0.19150
+Late Night Chord	0.25462
+Skyway Chord	0.18225
+Blue Haze	0.17598
+Deep Space Chord	0.17674
+Dub Chord	0.41947
+Melodic Deep	0.21221
+Broken Cassette	0.28840
+Seven Mile Stab	0.63667
+Hard Stab	0.70101
+Piano Stab	0.49870
+String Hit	0.57027
+Swing Stab	0.86690
+Gravel Stab	0.71817
+Offbeat Organ	0.64660
+Tape Organ	0.19613
+Jack Organ	0.41255
+Rhodes Ghost	0.28949
+Silk Keys	0.24696
+Vinyl Keys	0.33174
+Garage Organ	0.35077
+Bell Tone	0.22252
+Velvet Strings	0.19739
+Disco Strings	0.19843
+Low Strings	0.19880
+Tremolo Strings	0.21211
+Terrace Strings	0.20540
+Cold Room Pad	0.17308
+Warehouse Pad	0.18495
+Velvet Pad	0.17508
+Glass Pad	0.17259
+Phase Pad	0.18570
+Hazy Minor Pad	0.17336
+Ghost Pluck	0.66766
+Rim Blip	0.91992
+Hypnotic Loop	0.67553
+Tech Bleep	0.90496
+Swing Pluck	0.78783
+Wood Pluck	0.57119
+Dub Blip	0.66132
+Air Lead	0.21824
+Hoover Riff	0.25316
+Soul Whistle	0.20829
+Square Lead	0.22559
+Detune Lead	0.22608
+Night Bus Drone	0.33785
+Cold Wind	0.34366
+Dark Hum	0.33642
+Crushed Air	0.31679
+Space Echo	0.31808
+Phase Wash	0.36372
