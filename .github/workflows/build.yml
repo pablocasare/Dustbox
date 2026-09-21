@@ -12,7 +12,7 @@ jobs:
   mac:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Find the project folder
         # works whether you uploaded the DustBox folder itself or just its contents
@@ -53,7 +53,7 @@ jobs:
                    --identifier com.dustbox.synth --version 3.0 --install-location / \
                    "DustBox-Installer.pkg"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: DustBox-Mac-Installer
           path: DustBox-Installer.pkg
@@ -61,7 +61,7 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Find the project folder
         shell: bash
@@ -81,7 +81,7 @@ jobs:
           cp -R "build/DustBox_artefacts/Release/VST3/Dust Box.vst3" out/
           printf 'Copy the "Dust Box.vst3" folder into C:\\Program Files\\Common Files\\VST3\\\r\nthen rescan plugins in your DAW (FL Studio: Options > Manage plugins > Find installed plugins).\r\n' > out/INSTALL.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: DustBox-Windows
           path: out
