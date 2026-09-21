@@ -1,0 +1,87 @@
+# Builds Dust Box on GitHub's own computers and produces:
+#   DustBox-Mac-Installer  - a .pkg that installs the VST3, AU and standalone app
+#   DustBox-Windows        - the VST3 plus install instructions
+# Runs automatically when you upload changes, or by hand from the Actions tab.
+name: Build Dust Box
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find the project folder
+        # works whether you uploaded the DustBox folder itself or just its contents
+        run: |
+          if [ -f CMakeLists.txt ]; then P=.; else P=$(dirname "$(find . -maxdepth 3 -name CMakeLists.txt | head -1)"); fi
+          echo "Project is in: $P"
+          echo "PROJ=$P" >> "$GITHUB_ENV"
+
+      - name: Build (Apple Silicon + Intel)
+        run: |
+          cmake -S "$PROJ" -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake --build build --config Release --target DustBox_VST3 DustBox_AU DustBox_Standalone --parallel 4
+
+      - name: Make the installer
+        run: |
+          A=build/DustBox_artefacts/Release
+          mkdir -p root/Library/Audio/Plug-Ins/VST3 root/Library/Audio/Plug-Ins/Components root/Applications
+          cp -R "$A/VST3/Dust Box.vst3"      root/Library/Audio/Plug-Ins/VST3/
+          cp -R "$A/AU/Dust Box.component"   root/Library/Audio/Plug-Ins/Components/
+          cp -R "$A/Standalone/Dust Box.app" root/Applications/
+          for b in "root/Library/Audio/Plug-Ins/VST3/Dust Box.vst3" \
+                   "root/Library/Audio/Plug-Ins/Components/Dust Box.component" \
+                   "root/Applications/Dust Box.app"; do
+            codesign --force --deep --sign - "$b"
+          done
+          lipo -info "root/Library/Audio/Plug-Ins/VST3/Dust Box.vst3/Contents/MacOS/Dust Box"
+
+          # stop the installer "relocating" bundles to wherever an old copy lives
+          pkgbuild --analyze --root root comp.plist
+          i=0; while /usr/libexec/PlistBuddy -c "Set :$i:BundleIsRelocatable false" comp.plist 2>/dev/null; do i=$((i+1)); done
+
+          # after installing, make Logic/GarageBand re-scan Audio Units
+          mkdir -p scripts
+          printf '#!/bin/sh\nkillall -9 AudioComponentRegistrar 2>/dev/null || true\nexit 0\n' > scripts/postinstall
+          chmod +x scripts/postinstall
+
+          pkgbuild --root root --component-plist comp.plist --scripts scripts \
+                   --identifier com.dustbox.synth --version 3.0 --install-location / \
+                   "DustBox-Installer.pkg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DustBox-Mac-Installer
+          path: DustBox-Installer.pkg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find the project folder
+        shell: bash
+        run: |
+          if [ -f CMakeLists.txt ]; then P=.; else P=$(dirname "$(find . -maxdepth 3 -name CMakeLists.txt | head -1)"); fi
+          echo "PROJ=$P" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: |
+          cmake -S "${{ env.PROJ }}" -B build -A x64
+          cmake --build build --config Release --target DustBox_VST3 --parallel
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p out
+          cp -R "build/DustBox_artefacts/Release/VST3/Dust Box.vst3" out/
+          printf 'Copy the "Dust Box.vst3" folder into C:\\Program Files\\Common Files\\VST3\\\r\nthen rescan plugins in your DAW (FL Studio: Options > Manage plugins > Find installed plugins).\r\n' > out/INSTALL.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DustBox-Windows
+          path: out
