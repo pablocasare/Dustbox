@@ -1,0 +1,49 @@
+# Builds SERPENT on GitHub's Mac and produces Serpent-Mac-Installer (a .pkg that
+# installs the VST3, AU and standalone app). Runs on every upload, or by hand from Actions.
+name: Build Serpent
+
+on:
+  push:
+    branches: [serpent]
+  workflow_dispatch:
+
+jobs:
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build (Apple Silicon + Intel)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake --build build --config Release --target Serpent_VST3 Serpent_AU Serpent_Standalone --parallel 4
+
+      - name: Make the installer
+        run: |
+          A=build/Serpent_artefacts/Release
+          mkdir -p root/Library/Audio/Plug-Ins/VST3 root/Library/Audio/Plug-Ins/Components root/Applications
+          cp -R "$A/VST3/Serpent.vst3"      root/Library/Audio/Plug-Ins/VST3/
+          cp -R "$A/AU/Serpent.component"   root/Library/Audio/Plug-Ins/Components/
+          cp -R "$A/Standalone/Serpent.app" root/Applications/
+          for b in "root/Library/Audio/Plug-Ins/VST3/Serpent.vst3" \
+                   "root/Library/Audio/Plug-Ins/Components/Serpent.component" \
+                   "root/Applications/Serpent.app"; do
+            codesign --force --deep --sign - "$b"
+          done
+          lipo -info "root/Library/Audio/Plug-Ins/VST3/Serpent.vst3/Contents/MacOS/Serpent"
+
+          pkgbuild --analyze --root root comp.plist
+          i=0; while /usr/libexec/PlistBuddy -c "Set :$i:BundleIsRelocatable false" comp.plist 2>/dev/null; do i=$((i+1)); done
+
+          mkdir -p scripts
+          printf '#!/bin/sh\nkillall -9 AudioComponentRegistrar 2>/dev/null || true\nexit 0\n' > scripts/postinstall
+          chmod +x scripts/postinstall
+
+          pkgbuild --root root --component-plist comp.plist --scripts scripts \
+                   --identifier com.synthetik.serpent --version 1.0 --install-location / \
+                   "Serpent-Installer.pkg"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Serpent-Mac-Installer
+          path: Serpent-Installer.pkg
