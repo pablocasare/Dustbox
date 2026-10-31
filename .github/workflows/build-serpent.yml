@@ -47,3 +47,65 @@ jobs:
         with:
           name: Serpent-Mac-Installer
           path: Serpent-Installer.pkg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build (64-bit)
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+          cmake --build build --config Release --target Serpent_VST3 Serpent_Standalone --parallel 4
+
+      - name: Make the installer
+        shell: pwsh
+        run: |
+          $A = "build/Serpent_artefacts/Release"
+          if (!(Test-Path "$A/VST3/Serpent.vst3")) { throw "VST3 missing" }
+          if (!(Test-Path "$A/Standalone/Serpent.exe")) { throw "Standalone missing" }
+          New-Item -ItemType Directory -Force stage | Out-Null
+          Copy-Item -Recurse "$A/VST3/Serpent.vst3" stage/
+          Copy-Item "$A/Standalone/Serpent.exe" stage/
+          $iss = @'
+          [Setup]
+          AppId={{6E2B6C1A-5D3F-4B8E-9A71-53525054534B}
+          AppName=Serpent
+          AppVersion=1.0
+          AppPublisher=Synthetik
+          DefaultDirName={autopf}\Synthetik\Serpent
+          DefaultGroupName=Synthetik
+          DisableProgramGroupPage=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          PrivilegesRequired=admin
+          OutputDir=out
+          OutputBaseFilename=Serpent-Installer-Windows
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          UninstallDisplayName=Serpent by Synthetik
+
+          [Files]
+          Source: "stage\Serpent.vst3\*"; DestDir: "{commoncf64}\VST3\Serpent.vst3"; Flags: ignoreversion recursesubdirs createallsubdirs
+          Source: "stage\Serpent.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+          [Icons]
+          Name: "{group}\Serpent"; Filename: "{app}\Serpent.exe"
+          Name: "{group}\Uninstall Serpent"; Filename: "{uninstallexe}"
+
+          [UninstallDelete]
+          Type: filesandordirs; Name: "{commoncf64}\VST3\Serpent.vst3"
+          '@
+          $iss | Set-Content -Encoding UTF8 serpent.iss
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc serpent.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+          Get-Item out/Serpent-Installer-Windows.exe
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Serpent-Windows-Installer
+          path: out/Serpent-Installer-Windows.exe
